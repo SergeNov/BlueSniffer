@@ -40,7 +40,7 @@ def parse_raw_message(data):
     return result
 
 def parse_raw_message_inkIBSTH1(data):
-    if len(data)!=62:
+    if len(data)!=62 or data[58:60]!='08':
       return {}
     mac = reverse_mac(data[14:26])
     temp = float(int(data[44:46]+data[42:44], 16))/100
