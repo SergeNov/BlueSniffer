@@ -1,5 +1,20 @@
+import os
 import json
 import struct
+
+home = os.path.expanduser("~")
+
+fh_r = open(home + "/.blue/devices", "r")
+devices = json.loads(fh_r.read())
+fh_r.close()
+
+fh_r = open(home + "/.blue/s3", "r")
+s3_config = json.loads(fh_r.read())
+fh_r.close()
+
+fh_r = open(home + "/.blue/routing_key", "r")
+routing_key = fh_r.read().strip()
+fh_r.close()
 
 def reverse_mac(rmac):
     """Change LE order to BE."""
@@ -40,6 +55,8 @@ def parse_raw_message_inkIBSTH1(data):
     return result
 
 def parse_raw_message_gvh5075(data):
+    # this function has been borrowed from here:
+    # https://github.com/Home-Is-Where-You-Hang-Your-Hack/sensor.goveetemp_bt_hci
     """Parse the raw data."""
     if data is None:
         return None
