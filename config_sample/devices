@@ -1,0 +1,4 @@
+{
+  "Thermometer_1": {"mac": "494206000666"},
+  "Thermometer_2": {"mac": "A4C138554580", "temperature_threshold_min": 15.5, "temperature_threshold_max": 25, "humidity_threshold_min": 10, "humidity_threshold_max": 95, "battery_threshold_min": 30}
+}
