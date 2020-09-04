@@ -7,22 +7,17 @@ import json
 import boto3
 import blue_lib
 
-home_dir = '/opt/bluetooth_scan'
+home_dir = os.path.dirname(os.path.realpath(__file__))
 buffer_dir = home_dir+'/buffer'
-s3_bucket = 'sergebucket'
-s3_path = 'brewing'
+s3_bucket = blue_lib.s3_config['bucket']
+s3_path = blue_lib.s3_config['path']
 
 from pdpyras import EventsAPISession
 
-f_c = open(home_dir+"/config", "r")
-config_json = f_c.read()
-config = json.loads(config_json)
-f_c.close()
+config = blue_lib.devices
 
-f_rk = open(home_dir+"/routing_key", "r")
-routing_key = f_rk.read().strip()
+routing_key = blue_lib.routing_key
 pd_session = EventsAPISession(routing_key)
-f_rk.close()
 
 config_index = {}
 stats = {}
@@ -86,18 +81,33 @@ hcidump.kill()
 hcidump.communicate()
 hcitool.kill()
 hcitool.communicate()
+s3 = boto3.resource('s3')
+s3_client = boto3.client('s3')
 
 #populate statistics
 now = datetime.datetime.now()
 current_ts = now.strftime("%Y%m%d%H%M%S")
 current_d = now.strftime("%Y%m%d")
 for device, facts in stats.items():
-  fh = open(buffer_dir+'/'+current_d+'_'+device+'.csv', 'a')
+  file_name = current_d+'_'+device+'.csv'
+  #check if the file exists in buffer
+  if not os.path.exists(buffer_dir+'/'+file_name):
+    #file does not exist locally;
+    #this could be a new day/device, in which case it is ok
+    #file could have disappeared from local folder for some reason;
+    #check if it exists in s3; if it does, download it into buffer
+    response = s3_client.list_objects(
+      Bucket=s3_bucket,
+      Prefix=s3_path+'/'+file_name
+    )
+    if 'Contents' in response:
+      #File exists in s3, but not in local buffer; download
+      s3.meta.client.download_file(s3_bucket ,s3_path+'/'+file_name, buffer_dir+'/'+file_name)
+  fh = open(buffer_dir+'/'+file_name, 'a')
   fh.write(current_ts+','+str(facts['temperature'])+','+str(facts['humidity'])+','+str(facts['battery'])+','+str(facts['data'])+"\n")
   fh.close()
 
 #loop through files in the buffer
-s3 = boto3.resource('s3')
 onlyfiles = [f for f in os.listdir(buffer_dir) if os.path.isfile(os.path.join(buffer_dir, f))]
 for file in onlyfiles:
   file_arr = file.split('_')
