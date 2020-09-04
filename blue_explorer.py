@@ -6,23 +6,9 @@ import tempfile
 import json
 import boto3
 import blue_lib
-
-home_dir = '/opt/bluetooth_scan'
-buffer_dir = home_dir+'/buffer'
-s3_bucket = 'sergebucket'
-s3_path = 'brewing'
-
 from pdpyras import EventsAPISession
 
-f_c = open(home_dir+"/config", "r")
-config_json = f_c.read()
-config = json.loads(config_json)
-f_c.close()
-
-f_rk = open(home_dir+"/routing_key", "r")
-routing_key = f_rk.read().strip()
-pd_session = EventsAPISession(routing_key)
-f_rk.close()
+config = blue_lib.devices
 
 config_index = {}
 stats = {}
@@ -78,7 +64,7 @@ for i in range(20):
         names[result["mac"]] = device_name
     except:
       pass
-  print "  Second: " + str(i) + " -> " + str(c)
+  print("  Second: " + str(i) + " -> " + str(c))
   tempf.truncate(0)
 
 
@@ -95,5 +81,5 @@ now = datetime.datetime.now()
 current_ts = now.strftime("%Y%m%d%H%M%S")
 current_d = now.strftime("%Y%m%d")
 for mac, name in names.items():
-  print mac+" ("+name+"):"
-  print json.dumps(stats[mac], indent=2)
+  print(mac+" ("+name+"):")
+  print(json.dumps(stats[mac], indent=2))

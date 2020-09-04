@@ -72,7 +72,7 @@ for i in range(20):
       pass
   if len(stats) == len(config_index):
     break
-  print "  Second: " + str(i) + " -> " + str(c)
+  print("  Second: " + str(i) + " -> " + str(c))
   tempf.truncate(0)
 
 
@@ -132,10 +132,10 @@ for device, facts in stats.items():
            service = "Home Beer Brewing Operation"
            dedup_key = device + "." + key
            pd_session.trigger(message, service, dedup_key=dedup_key)
-           print message
+           print(message)
          if key_nature == 'max' and metric > value:
            message = "ALERT!!! " + device + " " +key_metric + " = " + str(metric) + " (MAX allowed value: " + str(value) + ")"
            service = "Home Beer Brewing Operation"
            dedup_key = device + "." + key
            pd_session.trigger(message, service, dedup_key=dedup_key)
-           print message
+           print(message)
