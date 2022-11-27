@@ -5,14 +5,14 @@ import subprocess
 import tempfile
 import json
 import boto3
+from pdpyras import EventsAPISession
+
 import blue_lib
 
 home_dir = os.path.dirname(os.path.realpath(__file__))
 buffer_dir = home_dir+'/buffer'
 s3_bucket = blue_lib.s3_config['bucket']
 s3_path = blue_lib.s3_config['path']
-
-from pdpyras import EventsAPISession
 
 config = blue_lib.devices
 
@@ -25,62 +25,30 @@ for item in config:
   if "mac" in config[item]:
     config_index[config[item]["mac"]] = item
 
-hcitool_cmd = ["hcitool", "-i", "hci_device", "lescan", "--duplicates"]
-hcidump_cmd = ["hcidump", "-i", "hci_device", "--raw", "hci"]
-
-tempf = tempfile.TemporaryFile(mode="w+b")
-devnull = open(os.devnull, "wb")
-
-print("Opening connections..")
-
-hcitool = subprocess.Popen(
-            hcitool_cmd, stdout=devnull, stderr=devnull
-        )
-hcidump = subprocess.Popen(
-            hcidump_cmd,
-            stdout=tempf,
-            stderr=devnull
-        )
+print("Opening sniffer")
+blue_lib.open_sniffer()
 
 print("Collecting data..")
 
-for i in range(20):
-  c = 0
-  time.sleep(1)
-  tempf.flush()
-  tempf.seek(0)
 
-  data = ""
-  for line in tempf:
-    try:
-      sline = line.decode()
-      c += 1
-      if sline.startswith(">"):
-        data = sline.replace(">", "").replace(" ", "").strip()
-      elif sline.startswith("< "):
-        data = ""
-      else:
-        data += sline.replace(" ", "").strip()
-      result = blue_lib.parse_raw_message(data)
-      if result != None and "mac" in result and result["mac"] in config_index and "temperature" in result:
-        result["data"] = data
-        device_name = config_index[result["mac"]]
-        for k, v in config[device_name].items():
-          result[k] = v 
-        stats[device_name] = result
-    except:
-      pass
-  if len(stats) == len(config_index):
-    break
-  print("  Second: " + str(i) + " -> " + str(c))
-  tempf.truncate(0)
+for i in range(11):
+  packets = blue_lib.get_batch(5)
+  recognized_packets = 0
+  for packet in packets:
+    result = blue_lib.parse_raw_message(packet)
+    if result is not None and "model" in result and result["mac"] in config_index and "temperature" in result:
+      recognized_packets += 1
+      device_name = config_index[result["mac"]]
+      for k, v in config[device_name].items():
+        result[k] = v
+      stats[device_name] = result
+    if len(stats) == len(config_index):
+      break
+  print(f"Scan {i}: captured {len(packets)} packets, recognized {recognized_packets} packets")
 
+print("Closing sniffer")
+blue_lib.close_sniffer()
 
-print("Closing connections..")
-hcidump.kill()
-hcidump.communicate()
-hcitool.kill()
-hcitool.communicate()
 s3 = boto3.resource('s3')
 s3_client = boto3.client('s3')
 
@@ -116,9 +84,8 @@ for file in onlyfiles:
   if file_d < current_d:
     os.remove(buffer_dir+'/'+file)
 
-tempf.close()
 print("Done!")
-print json.dumps(stats, indent = 2)
+print(json.dumps(stats, indent = 2))
 for device, facts in stats.items():
    for key, value in facts.items():
      if '_threshold_' in key:

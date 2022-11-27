@@ -1,85 +1,43 @@
-import os
-import time
-import datetime
-import subprocess
-import tempfile
-import json
-import boto3
 import blue_lib
-from pdpyras import EventsAPISession
 
 config = blue_lib.devices
 
 config_index = {}
 stats = {}
 names = {}
+
 for item in config:
   if "mac" in config[item]:
     config_index[config[item]["mac"]] = item
 
-hcitool_cmd = ["hcitool", "-i", "hci_device", "lescan", "--duplicates"]
-hcidump_cmd = ["hcidump", "-i", "hci_device", "--raw", "hci"]
+detected = {}
 
-tempf = tempfile.TemporaryFile(mode="w+b")
-devnull = open(os.devnull, "wb")
-
-print("Opening connections..")
-
-hcitool = subprocess.Popen(
-            hcitool_cmd, stdout=devnull, stderr=devnull
-        )
-hcidump = subprocess.Popen(
-            hcidump_cmd,
-            stdout=tempf,
-            stderr=devnull
-        )
+print("Opening sniffer")
+blue_lib.open_sniffer()
 
 print("Collecting data..")
 
-for i in range(20):
-  c = 0
-  time.sleep(1)
-  tempf.flush()
-  tempf.seek(0)
+for i in range(10):
+  packets = blue_lib.get_batch(6)
 
-  data = ""
-  for line in tempf:
-    try:
-      sline = line.decode()
-      c += 1
-      if sline.startswith(">"):
-        data = sline.replace(">", "").replace(" ", "").strip()
-      elif sline.startswith("< "):
-        data = ""
-      else:
-        data += sline.replace(" ", "").strip()
-      result = blue_lib.parse_raw_message(data)
-      if result != None and "mac" in result:
-        if result["mac"] in config_index:
-          device_name = config_index[result["mac"]]
-        else:
-          device_name = "Unaccounted for"
-        result["package"] = data
-        stats[result["mac"]] = result
-        names[result["mac"]] = device_name
-    except:
-      pass
-  print("  Second: " + str(i) + " -> " + str(c))
-  tempf.truncate(0)
+  recognized_packets = []
+  for packet in packets:
+    result = blue_lib.parse_raw_message(packet)
+    if result is not None and "model" in result:
+      recognized_packets.append(result)
+      mac = result['mac']
+      model = result['model']
+      name = "Not found in config"
+      if mac in config_index:
+        name = config_index[mac]
+      detected[mac] = {"model": model, "name": name}
 
+  print(f"Scan {i}: captured {len(packets)} packets, recognized {len(recognized_packets)} packets")
 
-print("Closing connections..")
-hcidump.kill()
-hcidump.communicate()
-hcitool.kill()
-hcitool.communicate()
-tempf.close()
+print("Closing sniffer")
+blue_lib.close_sniffer()
 
-
-#populate statistics
-now = datetime.datetime.now()
-current_ts = now.strftime("%Y%m%d%H%M%S")
-current_d = now.strftime("%Y%m%d")
-for mac, name in names.items():
-  print(mac+" ("+name+"):")
-  print(json.dumps(stats[mac], indent=2))
+print("Devices detected:")
+for mac in detected:
+  detail = detected[mac]
+  print(f"  {mac}: {detail['model']} / {detail['name']}")
