@@ -2,7 +2,7 @@
 This is my bluetooth sniffer.<br>
 The file that matters is <b>blue_lib.py</b>; Also 2 scripts are provided, but they are merely examples, unless they do exactly what you want them to do<br>
 <b>blue_explorer.py</b>: sniffs bluetooth packets for a minute, detects if any of them are from thermometers it is familiar with, and in the end prints the list of detected thermometers<br>
-<b>blue_worker</b>: sniffs bluetooth packets for a minute, finds if any of them come from thermometers listed in ~/.blue/devices config file, afterwards writes the readings into a file in S3, and triggers alerts in PagerDuty in case temperature/humidity/battery charge are outside allowed ranges<br>
+<b>blue_worker.py</b>: sniffs bluetooth packets for a minute, finds if any of them come from thermometers listed in ~/.blue/devices config file, afterwards writes the readings into a file in S3, and triggers alerts in PagerDuty in case temperature/humidity/battery charge are outside allowed ranges<br>
 
 <b>What thermometers does it work with?</b><br>
 At this moment, it works with 2 kinds of thermometers:
