@@ -39,8 +39,8 @@ sudo apt-get install bluez-hcidump<br>
 <br>
 <b>Make sure it works under non-root users</b><br>
 sudo apt-get install libcap2-bin<br>
-sudo setcap 'cap_net_raw,cap_net_admin+eip' \`which hcitool\`<br>
-sudo setcap 'cap_net_raw,cap_net_admin+eip' \`which hcidump\`<br>
+sudo setcap 'cap_net_raw,cap_net_admin+eip' `which hcitool`<br>
+sudo setcap 'cap_net_raw,cap_net_admin+eip' `which hcidump`<br>
 </i>
 
 <h3>Functions that might be useful to you:</h3>
